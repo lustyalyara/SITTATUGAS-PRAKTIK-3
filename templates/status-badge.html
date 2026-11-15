@@ -1,0 +1,8 @@
+<script type="text/x-template" id="tpl-status-badge">
+  <span class="status-pill" :class="statusClass" @mouseenter="hovering=true" @mouseleave="hovering=false">
+    <span v-if="Number(qty) === 0">● Kosong</span>
+    <span v-else-if="Number(qty) < Number(safety)">▲ Menipis</span>
+    <span v-else>● Aman</span>
+    <span class="status-note" v-show="hovering && note" v-html="note"></span>
+  </span>
+</script>

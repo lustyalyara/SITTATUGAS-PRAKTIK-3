@@ -1,0 +1,39 @@
+<script type="text/x-template" id="tpl-stock-table">
+<div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon blue">▦</div><div><small>Total Bahan Ajar</small><strong>{{ stok.length }}</strong><span>Data terdaftar</span></div></div>
+    <div class="stat-card"><div class="stat-icon green">✓</div><div><small>Stok Aman</small><strong>{{ countAman }}</strong><span>Stok mencukupi</span></div></div>
+    <div class="stat-card"><div class="stat-icon orange">!</div><div><small>Stok Menipis</small><strong>{{ countMenipis }}</strong><span>Perlu diperhatikan</span></div></div>
+    <div class="stat-card"><div class="stat-icon red">×</div><div><small>Stok Kosong</small><strong>{{ countKosong }}</strong><span>Perlu pemesanan ulang</span></div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-heading"><div><h2>Daftar Stok Bahan Ajar</h2><p>Kelola persediaan bahan ajar seluruh UT-Daerah.</p></div><button class="btn btn-primary" @click="openCreate">＋ Tambah Bahan Ajar</button></div>
+    <div class="filter-area">
+      <div class="field search-field"><label>Cari bahan ajar</label><input v-model.trim="keyword" type="search" placeholder="Cari kode atau judul mata kuliah..."></div>
+      <div class="field"><label>UT-Daerah</label><select v-model="filterUpbjj"><option value="">Semua UT-Daerah</option><option v-for="area in upbjjList" :key="area" :value="area">{{ area }}</option></select></div>
+      <div class="field"><label>Kategori</label><select v-model="filterKategori" :disabled="!filterUpbjj"><option value="">Semua kategori</option><option v-for="kategori in kategoriTersedia" :key="kategori" :value="kategori">{{ kategori }}</option></select></div>
+      <div class="field"><label>Kondisi stok</label><select v-model="filterStok"><option value="semua">Semua kondisi</option><option value="menipis">Di bawah safety stock</option><option value="kosong">Stok kosong</option></select></div>
+      <div class="field"><label>Urutkan</label><select v-model="sortBy"><option value="judul">Nama A–Z</option><option value="stok">Jumlah stok</option><option value="harga">Harga</option></select></div>
+      <button class="btn btn-light reset-btn" @click="resetFilter">Reset</button>
+    </div>
+    <div class="table-meta"><span>Menampilkan <b>{{ filteredStok.length }}</b> dari {{ stok.length }} data</span><span class="hint" v-text="'Arahkan kursor ke status untuk melihat catatan'"></span></div>
+    <div class="table-wrap"><table><thead><tr><th>KODE / MATA KULIAH</th><th>KATEGORI</th><th>UT-DAERAH</th><th>LOKASI RAK</th><th>HARGA</th><th>STOK</th><th>SAFETY</th><th>STATUS</th><th>AKSI</th></tr></thead>
+      <tbody><tr v-for="(item, index) in filteredStok" :key="item.kode"><td><strong class="course-code">{{ item.kode }}</strong><span class="course-title">{{ item.judul }}</span></td><td>{{ item.kategori }}</td><td>{{ item.upbjj }}</td><td>{{ item.lokasiRak }}</td><td class="nowrap">{{ item.harga | rupiah }}</td><td><b>{{ item.qty | buah }}</b></td><td>{{ item.safety | buah }}</td><td><status-badge :qty="item.qty" :safety="item.safety" :note="item.catatanHTML"></status-badge></td><td><div class="action-group"><button class="icon-btn edit" title="Edit" @click="openEdit(item)">✎</button><button class="icon-btn delete" title="Hapus" @click="askDelete(item)">×</button></div></td></tr>
+      <tr v-if="filteredStok.length === 0"><td colspan="9" class="empty-state">Tidak ada data yang sesuai dengan filter.</td></tr></tbody></table></div>
+  </div>
+  <div v-if="formOpen" class="modal-backdrop" @click.self="closeForm"><div class="modal-card form-modal"><div class="modal-head"><div><h3>{{ editing ? 'Edit Bahan Ajar' : 'Tambah Bahan Ajar' }}</h3><p>Lengkapi informasi bahan ajar berikut.</p></div><button class="close-btn" @click="closeForm">×</button></div>
+    <form @submit.prevent="saveForm"><div class="form-grid">
+      <div class="field"><label>Kode mata kuliah</label><input v-model.trim="form.kode" :disabled="editing" placeholder="Contoh: EKMA4116" required></div>
+      <div class="field"><label>Nama mata kuliah</label><input v-model.trim="form.judul" placeholder="Nama mata kuliah" required></div>
+      <div class="field"><label>Kategori</label><select v-model="form.kategori" required><option value="" disabled>Pilih kategori</option><option v-for="x in kategoriList" :key="x">{{ x }}</option></select></div>
+      <div class="field"><label>UT-Daerah</label><select v-model="form.upbjj" required><option value="" disabled>Pilih UT-Daerah</option><option v-for="x in upbjjList" :key="x">{{ x }}</option></select></div>
+      <div class="field"><label>Lokasi rak</label><input v-model.trim="form.lokasiRak" placeholder="Contoh: R1-A3" required></div>
+      <div class="field"><label>Harga (Rp)</label><input v-model.number="form.harga" type="number" min="1" required></div>
+      <div class="field"><label>Jumlah stok</label><input v-model.number="form.qty" type="number" min="0" required></div>
+      <div class="field"><label>Safety stock</label><input v-model.number="form.safety" type="number" min="0" required></div>
+      <div class="field full"><label>Catatan</label><textarea v-model.trim="form.catatanHTML" rows="2" placeholder="Catatan kondisi bahan ajar"></textarea></div>
+    </div><p v-if="formError" class="form-error">{{ formError }}</p><div class="modal-actions"><button type="button" class="btn btn-light" @click="closeForm">Batal</button><button type="submit" class="btn btn-primary">{{ editing ? 'Simpan Perubahan' : 'Simpan Data' }}</button></div></form>
+  </div></div>
+  <app-modal :show="deleteOpen" title="Hapus bahan ajar?" :message="'Data ' + (selected ? selected.kode : '') + ' akan dihapus dari daftar.'" @close="deleteOpen=false" @confirm="deleteItem"></app-modal>
+</div>
+</script>
